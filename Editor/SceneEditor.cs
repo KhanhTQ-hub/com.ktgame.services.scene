@@ -16,8 +16,11 @@ namespace com.ktgame.services.scene.editor
             _sceneSo = SceneServiceSettings.Instance;
         }
 
+        [Title("Scene Management", "Configure how scenes are loaded and managed", TitleAlignments.Left)]
+        [BoxGroup("General Settings", ShowLabel = false)]
         [ShowInInspector]
         [LabelText("Load Scene Type")]
+        [Tooltip("The mechanism used to load scenes (e.g., Default Unity loader or Addressables).")]
         public SceneLoaderType LoaderType
         {
             get => _sceneSo.LoaderType;
@@ -28,10 +31,11 @@ namespace com.ktgame.services.scene.editor
             }
         }
 
-        [PropertySpace(20)]
-        [Title("Scene Setting", Bold = true)]
+        [PropertySpace(10)]
+        [BoxGroup("General Settings")]
         [ShowInInspector]
         [LabelText("Starting Scene")]
+        [Tooltip("The first scene to load when the game starts.")]
         [ClassExtends(typeof(Scene))]
         public ClassTypeReference StartingScene
         {
@@ -39,10 +43,13 @@ namespace com.ktgame.services.scene.editor
             set => _sceneSo.StartingScene = value;
         }
 
-        [ListDrawerSettings(CustomAddFunction = "CreateNewParameter")]
-        [TableList(ShowIndexLabels = true, AlwaysExpanded = true)]
+        [PropertySpace(10)]
+        [BoxGroup("Scene List", ShowLabel = false)]
+        [ListDrawerSettings(CustomAddFunction = "CreateNewParameter", ShowIndexLabels = true)]
+        [TableList(AlwaysExpanded = true, DrawScrollView = false)]
         [ShowInInspector]
-        [LabelText("Scene Config Parameters")]
+        [LabelText("Registered Scenes")]
+        [Tooltip("List of all scenes managed by the Scene Service.")]
         public List<SceneData> Parameters
         {
             get => _sceneSo.Scenes ?? new List<SceneData>();
@@ -58,10 +65,5 @@ namespace com.ktgame.services.scene.editor
             };
         }
         
-        [Button("Get Scene")]
-        private void ProductKeysGenerate(string sceneName)
-        {
-            _sceneSo.GetScene(sceneName);
-        }
     }
 }

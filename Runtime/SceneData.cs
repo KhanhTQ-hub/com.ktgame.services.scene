@@ -8,9 +8,10 @@ namespace com.ktgame.services.scene
     [Serializable]
     public class SceneData
     {
-        [SerializeField, FoldoutGroup("$_sceneName")]  private string _sceneName;
+        [SerializeField]  
+        private string _sceneName;
 
-        [SerializeField, ClassExtends(typeof(Scene)), FoldoutGroup("$_sceneName")] 
+        [SerializeField, InlineProperty, ClassExtends(typeof(Scene))] 
         private ClassTypeReference _sceneType;
 
         public string SceneName

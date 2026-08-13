@@ -15,12 +15,10 @@ namespace com.ktgame.services.scene
             return operation.Execute();
         }
 
-#pragma warning disable CS0618
         public void Unload(string sceneName)
         {
-            SceneManager.UnloadScene(sceneName);
+            SceneManager.UnloadSceneAsync(sceneName);
         }
-#pragma warning restore CS0618
 
         public LoadSceneOperationHandle UnloadAsync(string sceneName)
         {

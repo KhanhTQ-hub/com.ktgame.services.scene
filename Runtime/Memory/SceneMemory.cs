@@ -16,13 +16,7 @@ namespace com.ktgame.services.scene
         public void Write<T>(T memory) where T : ISceneMemory
         {
             var type = memory.GetType();
-            if (_memoryLookup.ContainsKey(type))
-            {
-                _memoryLookup[type] = memory;
-                return;
-            }
-
-            _memoryLookup.Add(type, memory);
+            _memoryLookup[type] = memory;
         }
 
         public T Read<T>() where T : ISceneMemory

@@ -96,13 +96,15 @@ namespace com.ktgame.services.scene
                 }
 
                 Time.timeScale = 1f;
-                CurrentScene.Exit();
+                CurrentScene?.Exit();
                 _isSceneLoading = true;
 
-                if (CurrentScene.ExitTransition != null)
+                try
                 {
-                    await CurrentScene.ExitTransition.PlayAsync();
-                }
+                    if (CurrentScene?.ExitTransition != null)
+                    {
+                        await CurrentScene.ExitTransition.PlayAsync();
+                    }
 
                 var nextSceneData = GetSceneData(sceneName);
                 _loader.Load(nextSceneData.SceneName, LoadSceneMode.Single);
@@ -114,11 +116,18 @@ namespace com.ktgame.services.scene
 
                 _currentSceneData = nextSceneData;
                 CurrentScene = GetScene(_currentSceneData.SceneName);
-                _architecture.Injector.Resolve(CurrentScene);
-
-                CurrentScene.EnterTransition?.PlayAsync().Forget();
-
-                await CurrentScene.Enter();
+                if (CurrentScene != null)
+                {
+                    _architecture.Injector.Resolve(CurrentScene);
+                    CurrentScene.EnterTransition?.PlayAsync().Forget();
+                    await CurrentScene.Enter();
+                }
+            }
+            finally
+            {
+                _isSceneLoading = false;
+                _loadingTasks.Clear();
+            }
             }
             catch (Exception e)
             {
@@ -194,11 +203,13 @@ namespace com.ktgame.services.scene
             }
 
             Time.timeScale = 1f;
-            CurrentScene.Exit();
+            CurrentScene?.Exit();
             _isSceneLoading = true;
 
-            var nextSceneData = GetSceneData(sceneName);
-            var operationHandle = _loader.LoadAsync(nextSceneData.SceneName, loadSceneMode);
+            try
+            {
+                var nextSceneData = GetSceneData(sceneName);
+                var operationHandle = _loader.LoadAsync(nextSceneData.SceneName, loadSceneMode);
             operationHandle.AllowSceneActivation(false);
 
             var sceneLoadingTask = new SceneLoadingTask(operationHandle);
@@ -209,67 +220,67 @@ namespace com.ktgame.services.scene
                 allTasks.AddRange(_loadingTasks);
             }
 
-            if (CurrentScene.ExitTransition != null)
-            {
-                await CurrentScene.ExitTransition.PlayAsync();
-            }
+                if (CurrentScene?.ExitTransition != null)
+                {
+                    await CurrentScene.ExitTransition.PlayAsync();
+                }
 
-            CurrentScene.Loading?.OnLoading(0f);
-            CurrentScene.Loading?.OnStart();
+                CurrentScene?.Loading?.OnLoading(0f);
+                CurrentScene?.Loading?.OnStart();
 
             var tasks = allTasks.OrderBy(task => task.Priority).ToList();
             var totalWeight = allTasks.Sum(task => task.Weight);
             var taskProgresses = new float[tasks.Count];
 
-            for (var i = 0; i < tasks.Count; i++)
-            {
-                var index = i;
-                var progressReporter = new Progress<float>(p =>
+                for (var i = 0; i < tasks.Count; i++)
                 {
-                    taskProgresses[index] = p;
-
-                    var progress = 0f;
-                    for (var j = 0; j < tasks.Count; j++)
+                    var index = i;
+                    var progressReporter = new Progress<float>(p =>
                     {
-                        progress += taskProgresses[j] * tasks[j].Weight;
+                        taskProgresses[index] = p;
+
+                        var progress = 0f;
+                        for (var j = 0; j < tasks.Count; j++)
+                        {
+                            progress += taskProgresses[j] * tasks[j].Weight;
+                        }
+
+                        progress /= totalWeight;
+                        CurrentScene?.Loading?.OnLoading(progress);
+                    });
+
+                    try
+                    {
+                        var task = tasks[i];
+                        _architecture.Injector.Resolve(task);
+                        CurrentScene?.Loading?.OnLoadingTask(task);
+                        var result = await task.ExecuteAsync(progressReporter);
+                        if (!result)
+                        {
+                            Debug.Log($"{task.GetType().Name} execution failed");
+                            break;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Debug.LogError($"{e.Message}\n{e.StackTrace}");
+                        break;
                     }
 
-                    progress /= totalWeight;
-                    CurrentScene.Loading?.OnLoading(progress);
-                });
-
-                try
-                {
-                    var task = tasks[i];
-                    _architecture.Injector.Resolve(task);
-                    CurrentScene.Loading?.OnLoadingTask(task);
-                    var result = await task.ExecuteAsync(progressReporter);
-                    if (!result)
-                    {
-                        Debug.Log($"{task.GetType().Name} execution failed");
-                        return;
-                    }
-                }
-                catch (Exception e)
-                {
-                    Debug.LogError($"{e.Message}\n{e.StackTrace}");
-                    return;
+                    taskProgresses[index] = 1f;
                 }
 
-                taskProgresses[index] = 1f;
-            }
+                _loadingTasks.Clear();
+                CurrentScene?.Loading?.OnLoading(1f);
 
-            _loadingTasks.Clear();
-            CurrentScene.Loading?.OnLoading(1f);
+                while (!AllowSceneActive)
+                {
+                    await UniTask.Yield();
+                }
 
-            while (!AllowSceneActive)
-            {
-                await UniTask.Yield();
-            }
+                operationHandle.AllowSceneActivation(true);
 
-            operationHandle.AllowSceneActivation(true);
-
-            CurrentScene.Loading?.OnCompleted();
+                CurrentScene?.Loading?.OnCompleted();
 
             while (_isSceneLoading)
             {
@@ -282,32 +293,36 @@ namespace com.ktgame.services.scene
                 await UniTask.Yield();
             }
 
-            _currentSceneData = nextSceneData;
-            CurrentScene = GetScene(_currentSceneData.SceneName);
-            _architecture.Injector.Resolve(CurrentScene);
-
-            CurrentScene.EnterTransition?.PlayAsync().Forget();
-
-            await CurrentScene.Enter();
+                _currentSceneData = nextSceneData;
+                CurrentScene = GetScene(_currentSceneData.SceneName);
+                if (CurrentScene != null)
+                {
+                    _architecture.Injector.Resolve(CurrentScene);
+                    CurrentScene.EnterTransition?.PlayAsync().Forget();
+                    await CurrentScene.Enter();
+                }
+            }
+            finally
+            {
+                _isSceneLoading = false;
+                _loadingTasks.Clear();
+            }
         }
 
         private IScene GetScene(string sceneName)
         {
-            IScene scene = null;
             if (HasSceneType(sceneName))
             {
-                var rootGameObjects = SceneManager.GetActiveScene().GetRootGameObjects();
-                foreach (var go in rootGameObjects)
+                var scenes = UnityEngine.Object.FindObjectsOfType<Scene>(true);
+                foreach (var scene in scenes)
                 {
-                    scene = go.GetComponent<IScene>();
-                    if (scene != null)
+                    if (scene.gameObject.scene.name == sceneName)
                     {
-                        break;
+                        return scene;
                     }
                 }
             }
-
-            return scene;
+            return null;
         }
 
         private SceneData GetSceneData(string sceneName)
