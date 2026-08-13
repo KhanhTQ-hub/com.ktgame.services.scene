@@ -11,7 +11,7 @@ namespace com.ktgame.services.scene
         [SerializeField]  
         private string _sceneName;
 
-        [SerializeField, InlineProperty, ClassExtends(typeof(Scene))] 
+        [SerializeField, HideReferenceObjectPicker, ClassExtends(typeof(Scene))] 
         private ClassTypeReference _sceneType;
 
         public string SceneName

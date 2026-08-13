@@ -37,6 +37,7 @@ namespace com.ktgame.services.scene.editor
         [LabelText("Starting Scene")]
         [Tooltip("The first scene to load when the game starts.")]
         [ClassExtends(typeof(Scene))]
+        [HideReferenceObjectPicker]
         public ClassTypeReference StartingScene
         {
             get => _sceneSo.StartingScene;
