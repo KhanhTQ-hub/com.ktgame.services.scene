@@ -187,11 +187,14 @@ namespace com.ktgame.services.scene
 
             CurrentScene = GetScene(_currentSceneData.SceneName);
 
-            _architecture.Injector.Resolve(CurrentScene);
+            if (CurrentScene != null)
+            {
+                _architecture.Injector.Resolve(CurrentScene);
 
-            CurrentScene.EnterTransition?.PlayAsync().Forget();
+                CurrentScene.EnterTransition?.PlayAsync().Forget();
 
-            await CurrentScene.Enter();
+                await CurrentScene.Enter();
+            }
         }
 
         private async UniTask LoadSceneAsync(string sceneName, LoadSceneMode loadSceneMode)
